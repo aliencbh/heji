@@ -20,13 +20,18 @@
 
 ## 日常运维
 
-日常命令使用 `sh bin/heji`，它只负责启动同一个 Compose 运维容器：
+日常命令使用 `sh bin/heji`，它通过一次性运维容器对线上生产栈执行 `docker compose` 子命令，始终锁定当前已验收版本的归档编排与生产 `.env`：
 ```sh
 sh bin/heji compose ps
 sh bin/heji compose up -d --no-build --wait
 sh bin/heji compose exec -T app php artisan heji:developer aliencbh@gmail.com
 ```
-依次为查看服务、重启已验收版本、授予开发员资格。
+
+依次为：查看生产栈各容器状态与健康检查；重启已验收版本（不构建镜像、不跑迁移、不动数据卷，等待健康检查通过才返回）；给已在店铺注册的账号授予开发员资格（把 `address@example.com` 换成真实邮箱，解锁开发者页面与角色权限管理）。若 app 容器未运行，授权改用 `sh bin/heji compose run --rm --no-deps -T app php artisan heji:developer 邮箱`。
+
+证书续期一条命令完成：导入新证书（核对有效期、三个域名和密钥匹配，私钥权限 `0600`），随后自动 `nginx -t` 校验并热加载；导入失败不会触发 reload，web 未运行时证书落盘待启动生效：
+docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build
+-v /absolute/path/to/certificates:/input:ro ops tls-renew /input/fullchain.pem /input/privkey.pem
 
 容器统一挂载 `storage/logs`，宿主机路径为 `$HEJI_VAR/logs`，分类为 laravel、php、nginx、postgres、redis、scheduler、runtime、tests。`logs` 服务经本地 Unix 套接字收集容器输出写入 `runtime/`，服务自身错误文件按类型保存。当前版本号在 `$HEJI_VAR/current`，历次发布报告在 `$HEJI_VAR/releases/<版本>/`。请为持久卷与备份安排磁盘容量、保留期限和异机副本。
 
@@ -74,16 +79,20 @@ sh bin/heji compose exec -T app php artisan heji:developer aliencbh@gmail.com
 | 数据库备份 | 手动或按间隔（5–525600 分钟）执行 `pg_dump` 自定义归档，命名 `YYmmddhhmmss.dump`，支持日期区间、改备注、下载与删除。备份内容为整个应用数据库，含 audit 模式。目录权限 0700、文件 0600，下载响应 `no-store`。 |
 | 服务器状态 | 显示运行版本、负载、cgroup 资源统计、磁盘容量，以及服务器到当前浏览器的 HTTPS 下载测速（1 MiB）。 |
 
-备份下载是单一应用数据库的逻辑归档。恢复在新建空库进行，目标需先准备所用数据库角色；恢复命令在 db 容器内执行，客户端与服务端同版本。以下 `heji_restore` 为独立空库，不要填入在线库名（命令会拒绝 `heji`、`postgres`、`template0/1`）：
+备份下载是单一应用数据库的逻辑归档（`pg_dump --format=custom`，非纯 SQL，须用 `pg_restore` 读取）。恢复在新建空库进行，命令在 db 容器内执行，客户端与服务端同版本。`backup-list` 只读打印归档目录清单（TOC），不恢复数据；`restore` 以单事务、遇错即停方式写入独立空库，并拒绝在线库 `heji` 与系统库 `postgres/template0/template1`。
 
+先建空库，再检查归档，最后恢复（`heji_restore` 为独立空库名，可自定义但须匹配小写标识符）：
 ```bash
-docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build \
-  -v /absolute/path/to/backups:/input:ro ops backup-list /input/example.dump
-docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build \
-  -v /absolute/path/to/backups:/input:ro ops restore /input/example.dump heji_restore
+sh bin/heji compose exec -T db createdb -U heji_owner heji_restore
+docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build
+-v /absolute/path/to/backups:/input:ro ops backup-list /input/example.dump
+docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build
+-v /absolute/path/to/backups:/input:ro ops restore /input/example.dump heji_restore
 ```
 
-图片、TLS 证书、应用密钥、原始日志和归档文件保存在数据库外，应与数据库归档分别备份。恢复后核对网站账号、权限、订单金额与库存、日历及图片，再切换流量。
+PostgreSQL 角色是集群级的：恢复到同一 db 容器的新库时 `heji_owner/heji_app` 已存在可直接用；恢复到另一台服务器须先建好所用角色，否则遇错即停会因属主/ACL 缺失而中止。恢复后核对网站账号、权限、订单金额与库存、日历及图片，再切换流量；仅演练时事后 `dropdb -U heji_owner heji_restore` 清理。
+
+图片、TLS 证书、应用密钥、原始日志和归档文件保存在数据库外，应与数据库归档分别备份。
 
 ## 代码入口
 
