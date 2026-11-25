@@ -1,7 +1,7 @@
 {
   "name": "heji/three-sites",
   "type": "project",
-  "description": "禾集 · 下单、采购库存与食谱管理",
+  "description": "合集 · 下单、采购库存与食谱管理",
   "license": "proprietary",
   "require": {
     "php": "^8.4",
