@@ -1,15 +1,32 @@
 FROM composer:2 AS composer
-FROM php:8.4-fpm-alpine3.23 AS base
-RUN apk add --no-cache unzip postgresql18-client libpq libpng libjpeg-turbo freetype libxml2 oniguruma icu-libs fcgi tini \
+FROM php:latest AS base
+RUN apk add --no-cache unzip libpq libpng libjpeg-turbo freetype libxml2 oniguruma icu-libs fcgi tini libssl3 libcrypto3 zlib \
  && apk add --no-cache --virtual .build $PHPIZE_DEPS libpq-dev libpng-dev libjpeg-turbo-dev freetype-dev oniguruma-dev libxml2-dev icu-dev linux-headers \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j2 pdo_pgsql gd bcmath intl pcntl \
  && pecl install redis-6.3.0 && docker-php-ext-enable redis \
  && apk del .build
+ADD https://ftp.postgresql.org/pub/source/ /tmp/pg-index.html
+RUN apk add --no-cache --virtual .pg-build build-base openssl-dev zlib-dev linux-headers perl curl \
+ && PG_VERSION="$(grep -oE 'v[0-9]+\.[0-9]+/' /tmp/pg-index.html | tr -d 'v/' | sort -t. -k1,1n -k2,2n | tail -n1)" \
+ && test -n "$PG_VERSION" \
+ && cd /tmp \
+ && curl -fsSL -o "postgresql-${PG_VERSION}.tar.gz" "https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz" \
+ && curl -fsSL "https://ftp.postgresql.org/pub/source/v${PG_VERSION}/postgresql-${PG_VERSION}.tar.gz.sha256" | sha256sum -c - \
+ && tar -xzf "postgresql-${PG_VERSION}.tar.gz" \
+ && cd "postgresql-${PG_VERSION}" \
+ && ./configure --prefix=/usr/local --with-openssl --without-readline --without-icu --without-lz4 --without-zstd \
+ && make -C src/interfaces/libpq -j"$(nproc)" install \
+ && make -C src/bin/pg_dump -j"$(nproc)" install \
+ && make -C src/bin/psql -j"$(nproc)" install \
+ && cd / \
+ && rm -rf /tmp/pg-index.html "/tmp/postgresql-${PG_VERSION}" "/tmp/postgresql-${PG_VERSION}.tar.gz" /usr/local/lib/libpq.a \
+ && apk del .pg-build \
+ && pg_dump --version && pg_restore --version && psql --version
 WORKDIR /srv/heji
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 FROM base AS dependencies
-COPY --chmod=0644 composer.* ./
+COPY composer.* ./
 RUN if [ ! -e composer.lock ]; then composer update --no-install --no-scripts --no-interaction --prefer-dist; fi \
  && composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-autoloader
 FROM base AS app
@@ -43,7 +60,7 @@ COPY tests/browser.py tests/ui_controls.py tests/controls.test.cjs /checks/tests
 COPY resources/assets /checks/resources/assets
 CMD ["sh", "-ec", "node_path=$(python -c 'import pathlib,playwright;print(pathlib.Path(playwright.__file__).parent/\"driver/node\")'); \"$node_path\" --test /checks/tests/controls.test.cjs && python /checks/tests/ui_controls.py && python /checks/tests/browser.py"]
 
-FROM alpine:3.23 AS setup
+FROM alpine:latest AS setup
 RUN apk add --no-cache bash python3 openssl flock coreutils
 WORKDIR /opt/heji
 COPY .env.example ./
