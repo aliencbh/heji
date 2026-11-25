@@ -29,7 +29,7 @@ set "mode=dev"
 
 :start_flow
 echo 正在准备 Docker 运维容器...
-docker compose --env-file ".env.example" -f "compose.setup.yaml" build ops
+docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --build ops init
 if errorlevel 1 goto failed
 
 if /i "%mode%"=="prod" goto release
