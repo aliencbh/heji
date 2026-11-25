@@ -24,15 +24,9 @@
 ```sh
 sh bin/heji compose ps
 sh bin/heji compose up -d --no-build --wait
-sh bin/heji compose exec -T app php artisan heji:developer address@example.com
+sh bin/heji compose exec -T app php artisan heji:developer aliencbh@gmail.com
 ```
-
-依次为查看服务、重启已验收版本、授予开发员资格。证书续期时导入新证书（核对有效期、三个域名和密钥匹配，私钥权限 `0600`），随后热加载：
-```sh
-docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build
--v /absolute/path/to/certificates:/input:ro ops tls-import /input/fullchain.pem /input/privkey.pem
-sh bin/heji compose exec -T web nginx -s reload
-```
+依次为查看服务、重启已验收版本、授予开发员资格。
 
 容器统一挂载 `storage/logs`，宿主机路径为 `$HEJI_VAR/logs`，分类为 laravel、php、nginx、postgres、redis、scheduler、runtime、tests。`logs` 服务经本地 Unix 套接字收集容器输出写入 `runtime/`，服务自身错误文件按类型保存。当前版本号在 `$HEJI_VAR/current`，历次发布报告在 `$HEJI_VAR/releases/<版本>/`。请为持久卷与备份安排磁盘容量、保留期限和异机副本。
 

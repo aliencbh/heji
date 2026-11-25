@@ -14,6 +14,14 @@ live=(docker compose --env-file "$HEJI_ENV_FILE" -p heji -f "$compose_file")
 case "$action" in
     init) exec /opt/heji/init "$@" ;;
     tls-import) exec bash docker/tls-import "$@" ;;
+    tls-renew)
+        bash docker/tls-import "$@"
+        if [[ -z "$("${live[@]}" ps --status running -q web)" ]]; then
+            echo '证书已导入；web 容器未在运行，启动后自动生效。'
+            exit 0
+        fi
+        "${live[@]}" exec -T web nginx -t
+        exec "${live[@]}" exec -T web nginx -s reload ;;
     release) exec bash docker/release "$@" ;;
     compose) exec "${live[@]}" "$@" ;;
     retire-legacy)
@@ -21,7 +29,7 @@ case "$action" in
         [[ -r "$legacy" ]] || { echo '没有找到已安装的旧版日志单元。' >&2; exit 2; }
         cmp -s docker/heji-logs.service "$legacy" || { echo '该单元与原项目不同，已保留。' >&2; exit 1; }
         [[ -n "$("${live[@]}" ps --status running -q logs)" ]] || { echo '请先完成新版日志服务的发布。' >&2; exit 1; }
-        bus=(dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1)
+        bus=(dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org.freedesktop.systemd1)
         "${bus[@]}" org.freedesktop.systemd1.Manager.DisableUnitFiles array:string:heji-logs.service boolean:false
         "${bus[@]}" org.freedesktop.systemd1.Manager.StopUnit string:heji-logs.service string:replace ;;
     backup-list)
@@ -41,6 +49,6 @@ case "$action" in
         fi
         bash docker/logdirs heji "$compose_file"
         exec "${live[@]}" up -d --wait logs ;;
-    help) printf '%s\n' 'init [--local-cert] | tls-import CERT KEY | release [TAG] | compose ARG... | backup-list FILE | restore FILE DB | logdirs | logs-start | retire-legacy' ;;
+    help) printf '%s\n' 'init [--local-cert] | tls-import CERT KEY | tls-renew CERT KEY | release [TAG] | compose ARG... | backup-list FILE | restore FILE DB | logdirs | logs-start | retire-legacy' ;;
     *) echo "未知的运维命令：$action" >&2; exit 2 ;;
 esac
