@@ -1,0 +1,103 @@
+name: heji
+x-log: &service-log
+  driver: fluentd
+  options:
+    fluentd-address: unix://${HEJI_VAR:-/srv/heji/var}/log-socket/forward.sock
+    fluentd-async: "true"
+    tag: "{{.Name}}.log"
+x-php: &php
+  logging: *service-log
+  image: heji-app:${RELEASE_TAG:-latest}
+  pull_policy: never
+  env_file: ${HEJI_ENV_FILE:-.env}
+  environment:
+    RELEASE_TAG: ${RELEASE_TAG:-latest}
+    DB_OWNER_PASSWORD: ""
+  restart: unless-stopped
+  security_opt: [no-new-privileges:true]
+  volumes:
+    - appdata:/srv/heji/storage/app/private
+    - ${HEJI_VAR:-/srv/heji/var}/logs:/srv/heji/storage/logs
+  depends_on:
+    db: {condition: service_healthy}
+    redis: {condition: service_healthy}
+services:
+  logs:
+    image: heji-logs:${RELEASE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    network_mode: none
+    user: "65534:65534"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - ${HEJI_VAR:-/srv/heji/var}/log-socket:/run/heji
+      - ${HEJI_VAR:-/srv/heji/var}/logs/runtime:/output
+  db:
+    logging: *service-log
+    image: ${HEJI_POSTGRES_IMAGE:-postgres:latest}
+    restart: unless-stopped
+    depends_on: [logs]
+    environment:
+      POSTGRES_USER: heji_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?initialize .env}
+      POSTGRES_DB: heji
+      DB_PASSWORD: ${DB_PASSWORD:?initialize .env}
+    volumes:
+      - dbdata:/var/lib/postgresql
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/10-app.sh:ro
+      - ${HEJI_VAR:-/srv/heji/var}/logs/postgres:/logs
+    command: [postgres,-c,logging_collector=on,-c,log_directory=/logs,-c,log_filename=postgres-%Y-%m-%d.log,-c,log_min_messages=warning,-c,log_min_error_statement=panic,-c,log_file_mode=0644,-c,log_statement=none,-c,log_parameter_max_length_on_error=0]
+    healthcheck: {test: [CMD-SHELL,"pg_isready -U heji_owner -d heji"], interval: 5s, timeout: 4s, retries: 30}
+  redis:
+    logging: *service-log
+    image: ${HEJI_REDIS_IMAGE:-redis:latest}
+    user: redis
+    depends_on: [logs]
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?initialize .env}
+    command: [sh,-ec,'exec redis-server --requirepass "$$REDIS_PASSWORD" --appendonly yes --logfile /logs/redis.log --loglevel warning']
+    volumes:
+      - cachedata:/data
+      - ${HEJI_VAR:-/srv/heji/var}/logs/redis:/logs
+    healthcheck: {test: [CMD-SHELL,'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG'], interval: 5s, timeout: 4s, retries: 30}
+  app:
+    <<: *php
+    healthcheck: {test: [CMD-SHELL,'php -r ''exit((int)!fsockopen("127.0.0.1",9000));'''], interval: 5s, timeout: 4s, retries: 30}
+  migrate:
+    <<: *php
+    profiles: [maintenance]
+    restart: "no"
+    environment:
+      DB_USERNAME: heji_owner
+      DB_PASSWORD: ${DB_OWNER_PASSWORD:?initialize .env}
+      DB_OWNER_PASSWORD: ""
+    command:
+      - sh
+      - -ec
+      - |
+        php artisan migrate --force
+        PGPASSWORD="$$DB_PASSWORD" psql -X -v ON_ERROR_STOP=1 -h "$$DB_HOST" -p "$$DB_PORT" -U "$$DB_USERNAME" -d "$$DB_DATABASE" -f docker/grants.sql
+  scheduler:
+    <<: *php
+    command: [php,artisan,schedule:work]
+  web:
+    logging: *service-log
+    networks:
+      default:
+        aliases: [shop.laravel.demo,stock.laravel.demo,recipe.laravel.demo]
+    image: heji-web:${RELEASE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    ports: ["${BIND_HTTP:-80}:80","${BIND_HTTPS:-443}:443"]
+    volumes:
+      - ${HEJI_VAR:-/srv/heji/var}/tls:/run/tls:ro
+      - ${HEJI_VAR:-/srv/heji/var}/logs/nginx:/srv/heji/storage/logs/nginx
+    depends_on:
+      app: {condition: service_healthy}
+volumes:
+  dbdata: {}
+  cachedata: {}
+  appdata: {}

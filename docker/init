@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+cd "$(dirname "$0")"
+envfile=${HEJI_ENV_FILE:?}
+vardir=${HEJI_VAR:?}
+case "${1:-}" in ''|--local-cert) ;; *) echo '支持 init 或 init --local-cert' >&2; exit 2;; esac
+mkdir -p "$(dirname "$envfile")" "$vardir/tls"
+exec 9>"$vardir/deploy.lock"
+flock -x 9
+stage=$(mktemp -d "$vardir/tls/.init.XXXXXXXX")
+env_temp=''
+trap 'rm -rf -- "$stage"; if [[ -n "$env_temp" ]]; then rm -f -- "$env_temp"; fi' EXIT
+if [[ ! -e "$envfile" ]]; then
+    env_temp=$(mktemp "$(dirname "$envfile")/.heji-init.XXXXXXXX")
+    python3 - "$env_temp" <<'PY'
+import base64, pathlib, secrets, sys
+keys = {'APP_KEY': 'base64:' + base64.b64encode(secrets.token_bytes(32)).decode(),
+        **{k: secrets.token_hex(32) for k in ('DB_PASSWORD', 'DB_OWNER_PASSWORD', 'REDIS_PASSWORD')}}
+with open(sys.argv[1], 'w') as output:
+    for line in pathlib.Path('.env.example').read_text().splitlines():
+        name = line.partition('=')[0]
+        print(f'{name}={keys[name]}' if name in keys else line, file=output)
+PY
+    mv -- "$env_temp" "$envfile"
+fi
+chmod 0600 "$envfile"
+if [[ "${1:-}" == --local-cert ]]; then
+    cert="$vardir/tls/fullchain.pem"; key="$vardir/tls/privkey.pem"
+    if [[ -f "$cert" && -s "$cert" && -f "$key" && -s "$key" ]]; then chmod 0600 "$key"; exit 0; fi
+    if [[ -e "$cert" || -e "$key" ]]; then echo '已有证书文件不完整，请使用 tls-import 导入配套证书。' >&2; exit 1; fi
+    openssl req -x509 -newkey rsa:3072 -sha256 -nodes -days 90 -subj "/CN=shop.laravel.demo" \
+      -addext "subjectAltName=DNS:shop.laravel.demo,DNS:stock.laravel.demo,DNS:recipe.laravel.demo" \
+      -keyout "$stage/key" -out "$stage/cert"
+    mv -- "$stage/key" "$key"
+    if ! mv -- "$stage/cert" "$cert"; then rm -f -- "$key"; exit 1; fi
+fi

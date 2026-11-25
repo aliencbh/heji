@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+/var/
+/vendor/
+/reports/
+/storage/
+/bootstrap/cache/*.php

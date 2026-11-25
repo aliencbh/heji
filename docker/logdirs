@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+: "${HEJI_VAR:?}" "${HEJI_ENV_FILE:?}"
+project=${1:?provide the Compose project name}
+root=$(cd "$(dirname "$0")/.." && pwd)
+mkdir -p "$HEJI_VAR"/{logs,reports,log-socket}
+docker compose --env-file /dev/null -p "${HEJI_OPS_PROJECT:-heji-setup}" -f "$root/compose.setup.yaml" \
+  run --rm --no-deps -T -v "$HEJI_VAR:/data" files sh -ec '
+  chmod 0755 /data/reports
+  chmod 0700 /data/log-socket
+  for type in laravel php postgres redis nginx scheduler runtime tests; do mkdir -p "/data/logs/$type"; done
+  chmod 0755 /data/logs /data/logs/*
+  chown 65534:65534 /data/log-socket /data/logs/runtime
+  chown 82:82 /data/logs/laravel /data/logs/php /data/logs/tests /data/logs/scheduler /data/reports
+'
+# Resolve service account names inside the exact images that will use these volumes.
+compose=(docker compose --env-file "$HEJI_ENV_FILE" -p "$project" -f "${2:-$root/compose.yaml}")
+owner=(run --rm --no-deps -T --user 0 --entrypoint chown)
+"${compose[@]}" "${owner[@]}" db -R postgres:postgres /logs
+"${compose[@]}" "${owner[@]}" redis -R redis:redis /logs /data

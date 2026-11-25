@@ -1,0 +1,13 @@
+[Unit]
+Description=Heji Docker service log collection
+After=docker.service
+Requires=docker.service
+[Service]
+Environment=HEJI_VAR=/srv/heji/var
+Environment=HEJI_PROJECT=heji
+ExecStart=/usr/local/libexec/heji-runtime-logs
+Restart=always
+RestartSec=4
+UMask=0022
+[Install]
+WantedBy=multi-user.target

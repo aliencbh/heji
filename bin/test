@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+test "$HEJI_TEST_PROJECT" = isolated
+test "$APP_ENV" = testing
+find storage/logs/tests -maxdepth 1 -name '*.log' -type f -delete
+rm -f reports/junit.xml reports/coverage.jsonl
+touch reports/coverage.jsonl
+composer audit --locked --no-interaction
+php artisan migrate --force
+php artisan view:cache
+php artisan route:list > reports/routes.txt
+find app routes config database bootstrap tests -name '*.php' -print0 | xargs -0 -n1 php -l > reports/lint.txt
+status=0
+vendor/bin/phpunit --configuration phpunit.xml --log-junit reports/junit.xml || status=$?
+php bin/report.php || status=1
+exit "$status"

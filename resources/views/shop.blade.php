@@ -1,0 +1,9 @@
+@extends('layout')
+@section('title','选购商品')
+@section('content')
+<div class="heading"><div><h1>店铺选购</h1></div><a class="btn alt" href="/orders">我的订单</a></div><form class="searchbar"><input type="search" name="search" aria-label="搜索商品" placeholder="搜索商品名称" value="{{ request('search') }}"><button>搜索</button></form>
+<div class="cards">@forelse($items as $p)<article class="card">@if($p->photo)<img loading="lazy" src="/media/{{ $p->photo }}" alt="{{ $p->name }}">@endif<small>{{ $p->sku }}</small><h2>{{ $p->name }}</h2><p>{{ $p->description }}</p><b>RM {{ $p->price }}</b><small>可用 {{ $p->stock }}</small><form method="post" action="/cart" class="actions">@csrf<input type="hidden" name="product" value="{{ $p->id }}"><input type="number" name="quantity" aria-label="购物车数量" min="1" max="{{ min(999,$p->stock) }}" value="{{ $cart[$p->id]??1 }}" required><button @disabled(!$p->stock)>加入购物车</button></form></article>@empty<p>暂无可售商品。</p>@endforelse</div>
+@include('pager',['rows'=>$items])
+<section id="basket" class="panel"><h2>购物车</h2>@forelse($chosen as $p)<form method="post" action="/cart" class="actions">@csrf<input type="hidden" name="product" value="{{ $p->id }}"><b>{{ $p->name }}</b><span>RM {{ $p->price }}</span><input aria-label="{{ $p->name }} 数量" type="number" min="0" max="999" name="quantity" value="{{ $cart[$p->id] }}" required><button class="alt">更新</button><button name="quantity" value="0" class="quiet">移除</button></form>@empty<p>购物车为空。</p>@endforelse
+@if($chosen->isNotEmpty())<p>合计 <strong>RM {{ number_format($chosen->sum(fn($p)=>$p->price*$cart[$p->id]),2) }}</strong></p>@auth<form method="post" action="/checkout">@csrf<input type="hidden" name="nonce" value="{{ $nonce }}"><button>确认下单</button></form>@else<a href="/login">登录后下单</a>@endauth @endif</section><a class="mobile-cart" href="#basket">购物车 · {{ array_sum($cart) }} 件 <strong>查看购物车 ↑</strong></a>
+@endsection

@@ -1,0 +1,28 @@
+# Loaded together with the active heji compose.yaml by the operations container.
+services:
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: laravel_npm
+    restart: always
+    ports:
+      - "127.0.0.1:81:81"
+    volumes:
+      - ${HEJI_VAR:-/srv/heji/var}/config/npm/data:/data
+      - ${HEJI_VAR:-/srv/heji/var}/config/npm/letsencrypt:/etc/letsencrypt
+      - ${HEJI_VAR:-/srv/heji/var}/logs/npm:/data/logs
+      - ${HEJI_VAR:-/srv/heji/var}/tls:/ssl:ro
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: laravel_pgadmin
+    restart: always
+    # ops loads HEJI_ENV_FILE; only pass pgAdmin's two settings into this service.
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?Set PGADMIN_DEFAULT_EMAIL in the deployment env file or Windows environment}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?Set PGADMIN_DEFAULT_PASSWORD in the deployment env file or Windows environment}
+    ports:
+      - "127.0.0.1:8090:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ${HEJI_VAR:-/srv/heji/var}/logs/pgadmin:/var/log/pgadmin
+volumes:
+  pgadmin_data:

@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+cd "${HEJI_SOURCE_DIR:?}"
+action=${1:-help}
+if (($#)); then shift; fi
+compose_file=$PWD/compose.yaml
+if [[ -s "$HEJI_VAR/current" ]]; then
+    active=$(cat "$HEJI_VAR/current")
+    stored="$HEJI_VAR/releases/$active/runtime/compose.yaml"
+    if [[ -f "$stored" ]]; then compose_file=$stored; fi
+fi
+live=(docker compose --env-file "$HEJI_ENV_FILE" -p heji -f "$compose_file")
+case "$action" in
+    init) exec /opt/heji/init "$@" ;;
+    tls-import) exec bash docker/tls-import "$@" ;;
+    release) exec bash docker/release "$@" ;;
+    compose) exec "${live[@]}" "$@" ;;
+    retire-legacy)
+        legacy=/legacy-units/heji-logs.service
+        [[ -r "$legacy" ]] || { echo '没有找到已安装的旧版日志单元。' >&2; exit 2; }
+        cmp -s docker/heji-logs.service "$legacy" || { echo '该单元与原项目不同，已保留。' >&2; exit 1; }
+        [[ -n "$("${live[@]}" ps --status running -q logs)" ]] || { echo '请先完成新版日志服务的发布。' >&2; exit 1; }
+        bus=(dbus-send --system --print-reply --dest=org.freedesktop.systemd1 /org/freedesktop/systemd1)
+        "${bus[@]}" org.freedesktop.systemd1.Manager.DisableUnitFiles array:string:heji-logs.service boolean:false
+        "${bus[@]}" org.freedesktop.systemd1.Manager.StopUnit string:heji-logs.service string:replace ;;
+    backup-list)
+        [[ $# == 1 && -f "$1" ]] || { echo '请提供备份文件。' >&2; exit 2; }
+        exec "${live[@]}" exec -T db pg_restore --list < "$1" ;;
+    restore)
+        [[ $# == 2 && -f "$1" && "$2" =~ ^[a-z][a-z0-9_]*$ ]] || { echo '请提供备份文件及目标空库名。' >&2; exit 2; }
+        exec "${live[@]}" exec -T db sh -ec '
+          case "$1" in "$POSTGRES_DB"|postgres|template0|template1) echo "目标必须是独立空库" >&2; exit 2;; esac
+          exec pg_restore --exit-on-error --single-transaction -U "$POSTGRES_USER" -d "$1"
+        ' sh "$2" < "$1" ;;
+    logdirs) exec bash docker/logdirs "${1:-heji}" "$compose_file" ;;
+    logs-start)
+        if [[ "${stored:-}" == "" || ! -f "$stored" ]]; then
+            echo '日志容器将在首次发布新版时自动启动。'
+            exit 0
+        fi
+        bash docker/logdirs heji "$compose_file"
+        exec "${live[@]}" up -d --wait logs ;;
+    help) printf '%s\n' 'init [--local-cert] | tls-import CERT KEY | release [TAG] | compose ARG... | backup-list FILE | restore FILE DB | logdirs | logs-start | retire-legacy' ;;
+    *) echo "未知的运维命令：$action" >&2; exit 2 ;;
+esac

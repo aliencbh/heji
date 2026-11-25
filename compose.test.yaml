@@ -1,0 +1,37 @@
+x-log: &test-log
+  driver: fluentd
+  options:
+    fluentd-address: unix://${HEJI_VAR:?}/log-socket/forward.sock
+    fluentd-async: "true"
+    tag: "{{.Name}}.log"
+services:
+  tests:
+    logging: *test-log
+    image: heji-test:${RELEASE_TAG:-latest}
+    pull_policy: never
+    env_file: ${HEJI_ENV_FILE:?}
+    environment:
+      APP_ENV: testing
+      DB_USERNAME: heji_owner
+      DB_PASSWORD: ${DB_OWNER_PASSWORD:?}
+      # Test DB is a disposable Compose project. Production volumes are never mounted.
+      HEJI_TEST_PROJECT: isolated
+      XDEBUG_MODE: coverage,develop
+    volumes:
+      - ${HEJI_VAR:?}/logs:/srv/heji/storage/logs
+      - ${HEJI_VAR:?}/reports:/srv/heji/reports
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    command: [sh,bin/test]
+  browser:
+    logging: *test-log
+    image: heji-browser:${RELEASE_TAG:-latest}
+    pull_policy: never
+    shm_size: 1gb
+    environment:
+      - HEJI_BROWSER_PASSWORD
+    volumes:
+      - ${HEJI_VAR:?}/../http:/results
+    depends_on:
+      web: {condition: service_started}

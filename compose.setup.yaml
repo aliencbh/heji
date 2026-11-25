@@ -1,0 +1,53 @@
+name: heji-setup
+x-build: &build
+  context: ${HEJI_BUILD_CONTEXT:-.}
+  dockerfile: docker/Dockerfile
+
+services:
+  init:
+    build: {<<: *build, target: setup}
+    network_mode: none
+    environment:
+      HEJI_ENV_FILE: /config/.env
+      HEJI_VAR: /config/var
+    volumes:
+      - ${HEJI_CONFIG_DIR:-/srv/heji}:/config
+  dependencies:
+    build: {<<: *build, target: dependencies}
+    network_mode: none
+  app-image:
+    build: {<<: *build, target: app}
+    image: heji-app:${RELEASE_TAG:-latest}
+  web-image:
+    build: {<<: *build, target: web}
+    image: heji-web:${RELEASE_TAG:-latest}
+  test-image:
+    build: {<<: *build, target: test}
+    image: heji-test:${RELEASE_TAG:-latest}
+  browser-image:
+    build: {<<: *build, target: browser}
+    image: heji-browser:${RELEASE_TAG:-latest}
+  files:
+    image: alpine:latest
+    network_mode: none
+  ops:
+    profiles: [management]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: operations
+    network_mode: host
+    working_dir: /project
+    environment:
+      HEJI_SOURCE_DIR: /project
+      HEJI_CONFIG_DIR: ${HEJI_CONFIG_DIR:-/srv/heji}
+      HEJI_ENV_FILE: ${HEJI_ENV_FILE:-${HEJI_CONFIG_DIR:-/srv/heji}/.env}
+      HEJI_VAR: ${HEJI_VAR:-${HEJI_CONFIG_DIR:-/srv/heji}/var}
+    volumes:
+      - .:/project:ro
+      - ${HEJI_CONFIG_DIR:-/srv/heji}:${HEJI_CONFIG_DIR:-/srv/heji}
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt: [no-new-privileges:true]
+  logs-image:
+    build: {<<: *build, target: log-collector}
+    image: heji-logs:${RELEASE_TAG:-latest}

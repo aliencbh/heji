@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+case $0 in */*) cd -P "${0%/*}/..";; *) cd -P .;; esac
+exec docker compose --env-file /dev/null -f compose.setup.yaml run --rm -T --build ops "$@"

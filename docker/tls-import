@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+[[ $# == 2 && -f "$1" && -f "$2" ]] || { echo '请提供可读的证书链和私钥。' >&2; exit 2; }
+tls=${HEJI_VAR:?}/tls
+mkdir -p "$tls"
+exec 9>"$HEJI_VAR/deploy.lock"
+flock -x 9
+stage=$(mktemp -d "$tls/.import.XXXXXXXX")
+trap 'rm -rf -- "$stage"' EXIT
+install -m 0644 "$1" "$stage/cert"
+install -m 0600 "$2" "$stage/key"
+openssl x509 -in "$stage/cert" -noout -checkend 0
+for site in shop stock recipe; do
+    openssl verify -partial_chain -trusted "$stage/cert" -verify_hostname "$site.laravel.demo" "$stage/cert" >/dev/null
+done
+openssl x509 -in "$stage/cert" -pubkey -noout > "$stage/cert.pub"
+openssl pkey -passin pass: -in "$stage/key" -pubout > "$stage/key.pub"
+cmp -s "$stage/cert.pub" "$stage/key.pub" || { echo '证书与私钥不匹配。' >&2; exit 1; }
+if [[ -f "$tls/privkey.pem" ]]; then cp -p "$tls/privkey.pem" "$stage/previous-key"; fi
+mv -T -- "$stage/key" "$tls/privkey.pem"
+if ! mv -T -- "$stage/cert" "$tls/fullchain.pem"; then
+    if [[ -e "$stage/previous-key" ]]; then mv -- "$stage/previous-key" "$tls/privkey.pem"
+    else rm -f -- "$tls/privkey.pem"; fi
+    exit 1
+fi

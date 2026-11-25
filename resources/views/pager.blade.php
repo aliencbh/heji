@@ -1,0 +1,1 @@
+@if($rows->hasPages())<nav class="pagination" aria-label="翻页">@if($rows->previousPageUrl())<a href="{{ $rows->previousPageUrl() }}">上一页</a>@endif<span>{{ $rows->currentPage() }} / {{ $rows->lastPage() }}</span>@if($rows->nextPageUrl())<a href="{{ $rows->nextPageUrl() }}">下一页</a>@endif</nav>@endif

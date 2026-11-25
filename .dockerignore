@@ -1,0 +1,14 @@
+.git
+.env
+.env.*
+!.env.example
+var
+vendor
+node_modules
+storage
+bootstrap/cache/*.php
+reports
+*.zip
+*.pem
+*.key
+.release.*

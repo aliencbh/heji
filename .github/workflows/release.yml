@@ -1,0 +1,40 @@
+name: Test and release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: heji-production
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: [self-hosted, linux, heji-production]
+    environment: production
+    timeout-minutes: 90
+    steps:
+      - name: Fetch the requested commit inside Docker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$GITHUB_WORKSPACE:/checkout" \
+            -e GH_TOKEN -e GITHUB_SHA -e GITHUB_SERVER_URL -e GITHUB_REPOSITORY -e GITHUB_RUN_ID -e GITHUB_RUN_ATTEMPT \
+            --entrypoint sh alpine/git:latest -euc '
+              dir=/checkout/heji-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
+              mkdir "$dir" && cd "$dir"
+              git init --quiet
+              auth=$(printf "x-access-token:%s" "$GH_TOKEN" | base64 | tr -d "\n")
+              git -c "http.extraHeader=Authorization: Basic $auth" fetch --no-tags --depth=1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$GITHUB_SHA"
+              git checkout --quiet --detach FETCH_HEAD
+              test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+            '
+      - name: Test and deploy in the operations container
+        run: |
+          cd "$GITHUB_WORKSPACE/heji-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          sh bin/release "r${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA:0:12}"
+      - name: Remove temporary checkout inside Docker
+        if: always()
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -v "$GITHUB_WORKSPACE:/checkout" \
+            alpine:latest rm -rf -- "/checkout/heji-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
