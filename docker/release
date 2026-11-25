@@ -94,6 +94,7 @@ if not any(p['name']=='laravel/framework' and p['version'].lstrip('v').startswit
     raise SystemExit('依赖锁缺少 Laravel 13。')
 PYLOCK
 cp "$work/resolved.lock" "$work/src/composer.lock"
+chmod 0644 "$work/src/composer.lock"
 cp "$work/resolved.lock" "$reportdir/composer.lock"
 "${setupdc[@]}" build app-image test-image web-image browser-image logs-image
 HEJI_CONFIG_DIR="$work" "${setupdc[@]}" run --rm --no-deps -T --user "$(id -u):$(id -g)" \

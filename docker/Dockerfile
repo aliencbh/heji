@@ -9,7 +9,7 @@ RUN apk add --no-cache unzip postgresql18-client libpq libpng libjpeg-turbo free
 WORKDIR /srv/heji
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 FROM base AS dependencies
-COPY composer.* ./
+COPY --chmod=0644 composer.* ./
 RUN if [ ! -e composer.lock ]; then composer update --no-install --no-scripts --no-interaction --prefer-dist; fi \
  && composer install --no-dev --prefer-dist --no-interaction --no-scripts --no-autoloader
 FROM base AS app
