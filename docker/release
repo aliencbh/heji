@@ -82,6 +82,10 @@ trap cleanup EXIT
 sources=(app artisan bin bootstrap compose.yaml compose.test.yaml compose.setup.yaml composer.json phpunit.xml config database docker lang public resources routes tests .env.example .dockerignore)
 [[ ! -f composer.lock ]] || sources+=(composer.lock)
 tar --exclude='bootstrap/cache/*.php' -cf - "${sources[@]}" | tar -C "$work/src" -xf -
+# Isolation test uses $work/src, not reportdir/runtime. Same umask 077 -> 700 issue, fix it too.
+chmod 755 "$work/src/docker"
+chmod 644 "$work/src/docker/init-db.sh"
+chmod 644 "$work/src/compose.yaml"
 sha256sum composer.json | cut -d' ' -f1 > "$reportdir/composer.sha256"
 previous=$(cat "$live_var/current" 2>/dev/null || true)
 if [[ ! -e "$work/src/composer.lock" && -n "$previous" && -s "$live_var/releases/$previous/composer.lock" ]] &&
