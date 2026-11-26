@@ -65,7 +65,7 @@ RUN apk add --no-cache --virtual .test-build $PHPIZE_DEPS linux-headers curl \
  && make -j"$(nproc)" \
  && make install \
  && docker-php-ext-enable xdebug \
- && cd / \
+ && cd /srv/heji \
  && rm -rf /tmp/xdebug-src /tmp/xdebug.tgz \
  && apk del .test-build \
  && composer install --prefer-dist --no-interaction --no-scripts --optimize-autoloader \
