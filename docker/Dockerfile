@@ -1,10 +1,20 @@
 FROM composer:latest AS composer
 FROM php:fpm-alpine AS base
 RUN apk add --no-cache unzip libpq libpng libjpeg-turbo freetype libxml2 oniguruma icu-libs fcgi tini libssl3 libcrypto3 zlib \
- && apk add --no-cache --virtual .build $PHPIZE_DEPS libpq-dev libpng-dev libjpeg-turbo-dev freetype-dev oniguruma-dev libxml2-dev icu-dev linux-headers \
+ && apk add --no-cache --virtual .build $PHPIZE_DEPS libpq-dev libpng-dev libjpeg-turbo-dev freetype-dev oniguruma-dev libxml2-dev icu-dev linux-headers curl \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j2 pdo_pgsql gd bcmath intl pcntl \
- && pecl install redis && docker-php-ext-enable redis \
+ && mkdir -p /tmp/redis-src \
+ && curl -fsSL https://pecl.php.net/get/redis -o /tmp/redis.tgz \
+ && tar -xzf /tmp/redis.tgz --strip-components=1 -C /tmp/redis-src \
+ && cd /tmp/redis-src \
+ && phpize \
+ && ./configure \
+ && make -j"$(nproc)" \
+ && make install \
+ && docker-php-ext-enable redis \
+ && cd / \
+ && rm -rf /tmp/redis-src /tmp/redis.tgz \
  && apk del .build
 ADD https://ftp.postgresql.org/pub/source/ /tmp/pg-index.html
 RUN apk add --no-cache --virtual .pg-build build-base openssl-dev zlib-dev linux-headers perl curl \
@@ -46,7 +56,18 @@ CMD ["php-fpm","-F"]
 FROM app AS test
 USER root
 RUN apk add --no-cache --virtual .test-build $PHPIZE_DEPS linux-headers \
- && pecl install xdebug && docker-php-ext-enable xdebug && apk del .test-build \
+ && curl -fsSL https://pecl.php.net/get/xdebug -o /tmp/xdebug.tgz \
+ && mkdir -p /tmp/xdebug-src \
+ && tar -xzf /tmp/xdebug.tgz --strip-components=1 -C /tmp/xdebug-src \
+ && cd /tmp/xdebug-src \
+ && phpize \
+ && ./configure \
+ && make -j"$(nproc)" \
+ && make install \
+ && docker-php-ext-enable xdebug \
+ && cd / \
+ && rm -rf /tmp/xdebug-src /tmp/xdebug.tgz \
+ && apk del .test-build \
  && composer install --prefer-dist --no-interaction --no-scripts --optimize-autoloader \
  && chown -R www-data:www-data bootstrap/cache storage
 ENV XDEBUG_MODE=coverage
