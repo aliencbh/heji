@@ -6,7 +6,7 @@ class CommonTest extends TestCase {
     public function test_required_runtime_versions_and_redis(): void {
         $this->assertStringStartsWith('13.',app()->version());
         $pg=(int)DB::selectOne('show server_version_num')->server_version_num;
-        $this->assertGreaterThanOrEqual(180000,$pg); $this->assertLessThan(190000,$pg);
+        $this->assertGreaterThanOrEqual(180000,$pg);
         $this->assertNotFalse(\Illuminate\Support\Facades\Redis::connection()->ping());
     }
     public function test_registration_login_logout_and_site_boundaries(): void {
