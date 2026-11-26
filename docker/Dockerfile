@@ -56,7 +56,7 @@ CMD ["php-fpm","-F"]
 FROM app AS test
 USER root
 RUN apk add --no-cache --virtual .test-build $PHPIZE_DEPS linux-headers curl \
- && curl -fsSL https://pecl.php.net/get/xdebug-3.6.0alpha1 -o /tmp/xdebug.tgz \
+ && curl -fsSL https://xdebug.org/files/xdebug-3.6.0alpha1.tgz -o /tmp/xdebug.tgz \
  && mkdir -p /tmp/xdebug-src \
  && tar -xzf /tmp/xdebug.tgz --strip-components=1 -C /tmp/xdebug-src \
  && cd /tmp/xdebug-src \
