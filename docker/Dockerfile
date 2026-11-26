@@ -1,10 +1,10 @@
 FROM composer:2 AS composer
-FROM php:latest AS base
+FROM php:fpm-alpine AS base
 RUN apk add --no-cache unzip libpq libpng libjpeg-turbo freetype libxml2 oniguruma icu-libs fcgi tini libssl3 libcrypto3 zlib \
  && apk add --no-cache --virtual .build $PHPIZE_DEPS libpq-dev libpng-dev libjpeg-turbo-dev freetype-dev oniguruma-dev libxml2-dev icu-dev linux-headers \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j2 pdo_pgsql gd bcmath intl pcntl \
- && pecl install redis-6.3.0 && docker-php-ext-enable redis \
+ && pecl install redis && docker-php-ext-enable redis \
  && apk del .build
 ADD https://ftp.postgresql.org/pub/source/ /tmp/pg-index.html
 RUN apk add --no-cache --virtual .pg-build build-base openssl-dev zlib-dev linux-headers perl curl \
