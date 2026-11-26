@@ -84,6 +84,7 @@ class Operations(unittest.TestCase):
 
     def test_partial_existing_tls_is_preserved(self):
         self.invoke(self.root / 'init')
+        self.cert.unlink()
         self.key.write_bytes(b'previous key')
         self.assertNotEqual(self.invoke(self.root / 'init', '--local-cert', check=False).returncode, 0)
         self.assertEqual(b'previous key', self.key.read_bytes())
