@@ -40,7 +40,7 @@ abstract class TestCase extends LaravelTest {
             if ($cookie->isCleared()) unset($this->cookieJar[$this->site][$cookie->getName()]);
             else $this->cookieJar[$this->site][$cookie->getName()]=$cookie->getValue();
         }
-        $this->step($method.' '.strtok($path,'?').' → '.$result->status());
+        $this->step($method.' '.strtok($path,'?').' → '.$result->getStatusCode());
         return $result;
     }
     protected function product(): int {
