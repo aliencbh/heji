@@ -35,6 +35,10 @@ echo 正在准备 Docker 运维容器...
 docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --build ops init
 if errorlevel 1 goto failed
 
+echo 正在修复日志目录权限...
+docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --entrypoint sh --no-deps ops -c "mkdir -p /srv/heji/var/logs/redis /srv/heji/var/logs/postgres /srv/heji/var/logs/nginx /srv/heji/var/logs/pgadmin /srv/heji/var/logs/npm; chown -R 999:999 /srv/heji/var/logs/redis /srv/heji/var/logs/postgres; chmod -R 777 /srv/heji/var/logs"
+if errorlevel 1 goto failed
+
 if /i "%mode%"=="prod" goto release
 rem 实际部署环境文件由 ops 读取，默认为 /srv/heji/.env。
 rem 验证时使用发布配置和开发叠加文件，避免在切换版本后才发现配置错误。
