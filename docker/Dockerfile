@@ -1,4 +1,4 @@
-FROM composer:2 AS composer
+FROM composer:latest AS composer
 FROM php:fpm-alpine AS base
 RUN apk add --no-cache unzip libpq libpng libjpeg-turbo freetype libxml2 oniguruma icu-libs fcgi tini libssl3 libcrypto3 zlib \
  && apk add --no-cache --virtual .build $PHPIZE_DEPS libpq-dev libpng-dev libjpeg-turbo-dev freetype-dev oniguruma-dev libxml2-dev icu-dev linux-headers \
@@ -54,8 +54,8 @@ USER www-data
 FROM nginx:stable-alpine AS web
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY --from=app /srv/heji/public /srv/heji/public
-FROM mcr.microsoft.com/playwright/python:v1.56.0-noble AS browser
-RUN pip install --no-cache-dir playwright==1.56.0
+FROM mcr.microsoft.com/playwright/python:latest AS browser
+RUN pip install --no-cache-dir playwright
 COPY tests/browser.py tests/ui_controls.py tests/controls.test.cjs /checks/tests/
 COPY resources/assets /checks/resources/assets
 CMD ["sh", "-ec", "node_path=$(python -c 'import pathlib,playwright;print(pathlib.Path(playwright.__file__).parent/\"driver/node\")'); \"$node_path\" --test /checks/tests/controls.test.cjs && python /checks/tests/ui_controls.py && python /checks/tests/browser.py"]
