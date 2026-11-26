@@ -4,7 +4,7 @@ use App\Http\Middleware\CatalogAccess;
 use Illuminate\Support\Facades\Route;
 foreach (array_keys(config('heji.sites')) as $site) {
  Route::domain($site.'.laravel.demo')->group(function() use($site) {
-	Route::get('/health',fn()=>response('ok'))->withoutMiddleware();
+	Route::get('/health',fn()=>response('ok'));
     Route::middleware('guest')->group(function() {
         Route::get('/login',[AccessController::class,'form']);
         Route::get('/register',[AccessController::class,'form']);
