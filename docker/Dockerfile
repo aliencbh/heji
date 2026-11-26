@@ -17,7 +17,7 @@ RUN apk add --no-cache unzip libpq libpng libjpeg-turbo freetype libxml2 oniguru
  && rm -rf /tmp/redis-src /tmp/redis.tgz \
  && apk del .build
 ADD https://ftp.postgresql.org/pub/source/ /tmp/pg-index.html
-RUN apk add --no-cache --virtual .pg-build build-base openssl-dev zlib-dev linux-headers perl curl \
+RUN apk add --no-cache --virtual .pg-build build-base openssl-dev zlib-dev linux-headers perl curl bison flex \
  && PG_VERSION="$(grep -oE 'v[0-9]+\.[0-9]+/' /tmp/pg-index.html | tr -d 'v/' | sort -t. -k1,1n -k2,2n | tail -n1)" \
  && test -n "$PG_VERSION" \
  && cd /tmp \
@@ -55,7 +55,7 @@ ENTRYPOINT ["/sbin/tini","--"]
 CMD ["php-fpm","-F"]
 FROM app AS test
 USER root
-RUN apk add --no-cache --virtual .test-build $PHPIZE_DEPS linux-headers \
+RUN apk add --no-cache --virtual .test-build $PHPIZE_DEPS linux-headers curl \
  && curl -fsSL https://pecl.php.net/get/xdebug -o /tmp/xdebug.tgz \
  && mkdir -p /tmp/xdebug-src \
  && tar -xzf /tmp/xdebug.tgz --strip-components=1 -C /tmp/xdebug-src \
