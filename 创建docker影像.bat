@@ -8,6 +8,9 @@ if /i not "%~1"=="maximized" (
 chcp 936 >nul
 pushd "%~dp0" || exit /b 1
 
+if not defined PGADMIN_DEFAULT_EMAIL set "PGADMIN_DEFAULT_EMAIL=pgadmin@laravel.demo"
+if not defined PGADMIN_DEFAULT_PASSWORD set "PGADMIN_DEFAULT_PASSWORD=password"
+
 :input_env
 set "mode=dev"
 set /p "mode=请输入运行环境 (prod/dev，直接回车使用 dev): "
