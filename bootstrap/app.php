@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use App\Http\Middleware\SiteContext;
 use Illuminate\Foundation\Application;
@@ -10,7 +10,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias(['page' => App\Http\Middleware\PageAccess::class]);
 		$middleware->web(append: [
-		    SiteContext::class，
+		    SiteContext::class,
             \App\Http\Middleware\SetLocale::class
         ]);
         $middleware->redirectGuestsTo(fn () => '/login');
