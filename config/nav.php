@@ -1,6 +1,6 @@
 <?php
 return [
- 'shop'=>['商品与订单'=>['catalog'=>['商品档案','/admin/products'],'orders'=>['订单处理','/admin/orders']]],
- 'stock'=>['采购'=>['purchase.create'=>['采购工作台','/'],'purchase.manage'=>['采购收货','/admin/purchases']],'库存'=>['catalog'=>['物品档案','/admin/products'],'stock.adjust'=>['调整库存','/admin/adjust'],'stock.history'=>['库存流水','/admin/history']]],
- 'recipe'=>['食谱管理'=>['recipes'=>['食谱列表','/admin/recipes'],'ingredients'=>['食材档案','/admin/ingredients']],'膳食安排'=>['calendar'=>['饮食日历','/admin/calendar'],'restock'=>['下周补货','/admin/restock']]],
+ 'shop'=>['messages.nav_shop_goods_orders'=>['catalog'=>['messages.nav_products','/admin/products'],'orders'=>['messages.nav_orders','/admin/orders']]],
+ 'stock'=>['messages.nav_purchase'=>['purchase.create'=>['messages.nav_purchase_workspace','/'],'purchase.manage'=>['messages.nav_purchase_receive','/admin/purchases']],'messages.nav_stock'=>['catalog'=>['messages.nav_items','/admin/products'],'stock.adjust'=>['messages.nav_adjust_stock','/admin/adjust'],'stock.history'=>['messages.nav_stock_history','/admin/history']]],
+ 'recipe'=>['messages.nav_recipe_manage'=>['recipes'=>['messages.nav_recipe_list','/admin/recipes'],'ingredients'=>['messages.nav_ingredients','/admin/ingredients']],'messages.nav_meal_plan'=>['calendar'=>['messages.nav_calendar','/admin/calendar'],'restock'=>['messages.nav_restock','/admin/restock']]],
 ];
