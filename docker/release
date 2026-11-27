@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # All changes to the live application follow the isolated test and HTTPS gates.
 set -Eeuo pipefail
 cd "${HEJI_SOURCE_DIR:?}"
@@ -122,7 +122,7 @@ bash docker/logdirs "$project" "$work/src/compose.yaml"
 export BIND_HTTP=127.0.0.1:0 BIND_HTTPS=127.0.0.1:0
 "${testdc[@]}" up -d --wait db redis
 if [[ -s "$live_var/current" ]]; then
-    RELEASE_TAG=$(cat "$live_var/current") HEJI_ENV_FILE="$live_env" HEJI_VAR="$live_var" "${live[@]}" exec -T app php artisan heji:reset-test-logs
+    RELEASE_TAG=$(cat "$live_var/current") HEJI_ENV_FILE="$live_env" HEJI_VAR="$live_var" "${live[@]}" exec -T app php artisan heji:reset-test-logs || echo "live app 未运行，跳过 reset-test-logs" >&2
 fi
 "${testdc[@]}" run --rm tests
 mkdir -p "$work/http"
