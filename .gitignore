@@ -1,6 +1,5 @@
 .env
 .env.*
-!.env.example
 /var/
 /vendor/
 /reports/
