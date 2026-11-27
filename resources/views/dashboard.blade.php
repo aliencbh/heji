@@ -1,5 +1,5 @@
 @extends('layout')
-@section('title','工作台')
+@section('title', __('messages.dashboard'))
 @section('content')
 <h1>{{ __(config('heji.sites.'.request()->attributes->get('site'))) }}{{ __('messages.dashboard') }}</h1><p class="lead">{{ auth()->user()->name }}{{ __('messages.choose_business') }}</p><div class="cards">
 @foreach(config('nav.'.request()->attributes->get('site')) as $group=>$links)@foreach($links as $perm=>$link)@can('page',$perm)<a class="card" href="{{ $link[1] }}"><small>{{ __($group) }}</small><h2>{{ $link[0] }} ↗</h2></a>@endcan @endforeach @endforeach

@@ -1,3 +1,3 @@
 @extends('layout')
-@section('title','服务器状态')
-@section('content')<h1>服务器状态</h1><div class="cards">@foreach($data as $label=>$value)<section class="card"><small>{{ $label }}</small><p class="pre">{{ $value }}</p></section>@endforeach</div><section class="panel"><h2>服务器到此设备</h2><button id="speed">测试下载速度</button> <output id="speed-result" aria-live="polite"></output><p class="muted">使用本次 HTTPS 下载 1 MiB 的总耗时估算，包含连接与网络延迟。</p></section>@endsection
+@section('title', __('messages.nav_server_status'))
+@section('content')<h1>{{ __('messages.nav_server_status') }}</h1><div class="cards">@foreach($data as $label=>$value)<section class="card"><small>{{ $label }}</small><p class="pre">{{ $value }}</p></section>@endforeach</div><section class="panel"><h2>{{ __('messages.server_to_device') }}</h2><button id="speed">{{ __('messages.test_speed') }}</button> <output id="speed-result" aria-live="polite"></output><p class="muted">{{ __('messages.speed_hint') }}</p></section>@endsection

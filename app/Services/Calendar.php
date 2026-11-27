@@ -92,12 +92,12 @@ class Calendar {
                 $ruleDay=$ruleDays[$to->day]??$to->day;
                 if ($to->day<today()->toDateString() || !in_array($to->slot,$this->solver->slots($ruleDay,$weekend),true) ||
                     !$this->solver->eligible($pool[$from->recipe_id],$to->slot,$ruleDay,$first))
-                    throw ValidationException::withMessages(['swap'=>'菜式类别或日期与该位置不符。']);
+                    throw ValidationException::withMessages(['swap'=>__('messages.swap_mismatch')]);
                 DB::table('meals')->where('id',$to->id)->update(['recipe_id'=>$from->recipe_id]);
             }
             foreach ([$left->day,$right->day] as $day) foreach ([-1,1] as $offset) {
                 if (array_intersect($this->adjacent($day),$this->adjacent(CarbonImmutable::parse($day)->addDays($offset)->toDateString())))
-                    throw ValidationException::withMessages(['swap'=>'调整后相邻两天会出现相同食材。']);
+                    throw ValidationException::withMessages(['swap'=>__('messages.swap_adjacent_same')]);
             }
         });
     }

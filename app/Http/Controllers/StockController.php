@@ -17,19 +17,19 @@ class StockController {
             if (!DB::table('purchases')->where('user_id',$actor)->where('client_ref',$d['client_ref'])->exists())
                 DB::table('purchases')->insert($d+['user_id'=>$actor]);
         });
-        return back()->with('ok','采购单已提交。');
+        return back()->with('ok',__('messages.purchase_submitted'));
     }
     public function purchases(Request $r) {
-        return Grid::show($r,DB::table('purchases'),['id'=>'采购单','product_id'=>'物品编号','quantity'=>'数量','note'=>'备注','status'=>'状态','created_at'=>'提交时间'],'采购收货',['actions'=>$r->user()->can('page','purchase.manage.update')?'purchases':null,'csvAllowed'=>$r->user()->can('page','purchase.manage.export')]);
+        return Grid::show($r,DB::table('purchases'),['id'=>__('messages.grid_purchase_id'),'product_id'=>__('messages.grid_product_id'),'quantity'=>__('messages.grid_quantity'),'note'=>__('messages.grid_note'),'status'=>__('messages.grid_status'),'created_at'=>__('messages.grid_purchase_time')],__('messages.grid_purchase_title'),['actions'=>$r->user()->can('page','purchase.manage.update')?'purchases':null,'csvAllowed'=>$r->user()->can('page','purchase.manage.export')]);
     }
     public function change(Request $r,int $id,Inventory $inventory) {
-        $d=$r->validate(['status'=>'required|in:已收货,已取消']); $inventory->purchaseStatus($id,$d['status'],$r->user()->id); return back();
+        $d=$r->validate(['status'=>'required|in:' . \App\Support\DbValues::RECEIVED . ',' . \App\Support\DbValues::CANCELLED]); $inventory->purchaseStatus($id,$d['status'],$r->user()->id); return back();
     }
     public function adjust(Request $r,Inventory $inventory) {
         $d=$r->validate(['product_id'=>'required|integer|exists:products,id','delta'=>'required|integer|not_in:0|between:-1000000,1000000','reason'=>'required|string|max:160']);
-        DB::transaction(fn()=>$inventory->move($d['product_id'],$d['delta'],$d['reason'],$r->user()->id)); return back()->with('ok','已记录库存流水。');
+        DB::transaction(fn()=>$inventory->move($d['product_id'],$d['delta'],$d['reason'],$r->user()->id)); return back()->with('ok',__('messages.stock_move_recorded'));
     }
     public function history(Request $r) {
-        return Grid::show($r,DB::table('movements'),['id'=>'流水号','product_id'=>'物品','delta'=>'变动量','reason'=>'原因','user_id'=>'经手人','created_at'=>'发生时间'],'库存流水',['csvAllowed'=>$r->user()->can('page','stock.history.export')]);
+        return Grid::show($r,DB::table('movements'),['id'=>__('messages.grid_movement_id'),'product_id'=>__('messages.grid_product'),'delta'=>__('messages.grid_delta'),'reason'=>__('messages.grid_reason'),'user_id'=>__('messages.grid_actor'),'created_at'=>__('messages.grid_move_time')],__('messages.grid_movements_title'),['csvAllowed'=>$r->user()->can('page','stock.history.export')]);
     }
 }

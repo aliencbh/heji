@@ -27,9 +27,9 @@ class CalendarController {
         $tomorrow=$today->addDay();
         $generateFrom=$start->greaterThan($tomorrow) ? $start : $tomorrow;
         $rows=DB::table('meals as m')->join('recipes as r','r.id','=','m.recipe_id')->whereBetween('day',[$start->toDateString(),$end->toDateString()])
-            ->select('m.*','r.name')->orderByRaw("array_position(ARRAY['荤菜','素菜','汤','周末其他'],slot)")->get()->groupBy('day');
+            ->select('m.*','r.name')->orderByRaw("array_position(ARRAY['" . implode("','", \App\Support\DbValues::SLOTS) . "''],slot)")->get()->groupBy('day');
         $thaw=DB::table('meals as m')->join('recipe_items as ri','ri.recipe_id','=','m.recipe_id')->join('ingredients as i','i.id','=','ri.ingredient_id')
-            ->whereBetween('day',[$start->toDateString(),$end->toDateString()])->where('storage','冷冻')->select('day','i.name')->distinct()->get()->groupBy('day');
+            ->whereBetween('day',[$start->toDateString(),$end->toDateString()])->where('storage',\App\Support\DbValues::FROZEN)->select('day','i.name')->distinct()->get()->groupBy('day');
         $days=DB::table('meal_days')->whereBetween('day',[$start->toDateString(),$end->toDateString()])->get();
         $skips=$days->where('skipped',true)->pluck('day')->all();
         $origins=$days->whereNotNull('rule_day')->pluck('rule_day','day');
@@ -41,25 +41,25 @@ class CalendarController {
             'day'=>'required|date_format:Y-m-d|after_or_equal:'.CarbonImmutable::tomorrow(config('app.timezone'))->toDateString(),
             'length'=>'required|integer|min:1',
             'view'=>'sometimes|in:month,week',
-        ],['day.after_or_equal'=>'排期最早从明天开始。']);
+        ],['day.after_or_equal'=>__('messages.schedule_from_tomorrow')]);
         $start=CarbonImmutable::parse($d['day']);
         $days=(int)$d['length'];
         if ($days > 1 + (int)$start->diffInDays(CarbonImmutable::create(9999,12,31,0,0))) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['length'=>'结束日期超出四位年份日期格式。']);
+            throw \Illuminate\Validation\ValidationException::withMessages(['length'=>__('messages.end_date_format')]);
         }
         $calendar->arrange($start,$days,'shuffle');
         $query=['date'=>$start->toDateString()];
         if (isset($d['view'])) $query['view']=$d['view'];
-        return redirect('/admin/calendar?'.http_build_query($query))->with('ok','已更新 '.$start->toDateString().' 至 '.$start->addDays($days-1)->toDateString().' 的排期。');
+        $end = $start->copy()->addDays($days-1)->toDateString(); return redirect('/admin/calendar?'.http_build_query($query))->with('ok', __('messages.schedule_updated', ['start' => $start->toDateString(), 'end' => $end]));
     }
     public function skip(Request $r,Calendar $calendar) {
         $today=CarbonImmutable::today(config('app.timezone'));
         $r->validate(['day'=>'required|date_format:Y-m-d|in:'.$today->toDateString()]);
         $moved=$calendar->skipDay($today);
-        return back()->with('ok',$moved?'今天已标记没煮，今天及之后的菜单已整体顺延一天。':'今天已标记没煮，本次没有再次顺延。');
+        return back()->with('ok',$moved?__('messages.marked_not_cooked_moved'):__('messages.marked_not_cooked_no_move'));
     }
     public function swap(Request $r,Calendar $calendar) {
-        $d=$r->validate(['from'=>'required|integer','to'=>'required|integer|different:from']); $calendar->swap($d['from'],$d['to']); return back()->with('ok','菜式已交换。');
+        $d=$r->validate(['from'=>'required|integer','to'=>'required|integer|different:from']); $calendar->swap($d['from'],$d['to']); return back()->with('ok',__('messages.dishes_swapped'));
     }
     public function settings(Request $r,Calendar $calendar) {
         $d=$r->validate(['first'=>'required|integer|between:1,7','weekend'=>'sometimes|array|max:7','weekend.*'=>'integer|distinct|between:1,7']);
@@ -73,7 +73,7 @@ class CalendarController {
             DB::table('settings')->where('key','weekend')->update(['value'=>json_encode($weekend)]);
             $first=CarbonImmutable::tomorrow(config('app.timezone')); $last=DB::table('meal_days')->where('day','>=',$first->toDateString())->max('day');
             if ($last) $calendar->arrange($first,1+(int)$first->diffInDays(CarbonImmutable::parse($last)),'settings');
-        }); return back()->with('ok','日历规则已保存。');
+        }); return back()->with('ok',__('messages.calendar_rules_saved'));
     }
     public function restock(Calendar $calendar) {
         $start=$calendar->start(CarbonImmutable::today(config('app.timezone')))->addWeek(); $end=$start->addDays(6);
@@ -90,6 +90,6 @@ class CalendarController {
     }
     public function remaining(Request $r) {
         $d=$r->validate(['id'=>'required|integer|exists:ingredients,id','remaining'=>'required|numeric|decimal:0,3|min:0|max:999999999.999']);
-        DB::table('ingredients')->where('id',$d['id'])->update(['remaining'=>$d['remaining']]); return back()->with('ok','现存量已更新。');
+        DB::table('ingredients')->where('id',$d['id'])->update(['remaining'=>$d['remaining']]); return back()->with('ok',__('messages.remaining_updated'));
     }
 }

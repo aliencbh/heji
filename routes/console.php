@@ -6,22 +6,22 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\{Artisan,DB,Schedule};
 Artisan::command('heji:developer {email}',function() {
     $u=User::where('email',mb_strtolower($this->argument('email')))->first();
-    if (!$u) { $this->error('请先通过网页注册该账号。'); return 1; }
+    if (!$u) { $this->error(__('messages.register_first_web')); return 1; }
     DB::transaction(function() use($u) { $u->developer=true; $u->save(); Events::record('developer.granted',(string)$u->id); });
-    $this->info('已设置开发员身份。'); return 0;
+    $this->info(__('messages.dev_set')); return 0;
 });
 Artisan::command('heji:menu',function(Calendar $calendar) {
     if (DB::table('recipes')->where('tasty',true)->exists()) $calendar->arrange(CarbonImmutable::tomorrow(config('app.timezone')),14);
 });
-Artisan::command('heji:backup {--due}',function(Backups $backups) { $this->info($backups->create($this->option('due'))??'尚未到备份时间'); });
+Artisan::command('heji:backup {--due}',function(Backups $backups) { $this->info($backups->create($this->option('due'))??__('messages.backup_not_due')); });
 Artisan::command('heji:reset-test-logs',function() {
     DB::transaction(function() {
         DB::select('select pg_advisory_xact_lock(924378)');
         foreach (glob(storage_path('logs/tests/*.log'))?:[] as $file) {
-            if (!unlink($file)) throw new RuntimeException('无法清空本轮测试日志。');
+            if (!unlink($file)) throw new RuntimeException(__('messages.clear_test_logs_failed'));
         }
         DB::table('log_offsets')->where('path','like','tests/%')->delete();
-        DB::table('log_entries')->where('category','测试')->delete();
+        DB::table('log_entries')->where('category',\App\Support\DbValues::TEST)->delete();
         Events::record('testlogs.reset');
     });
 });

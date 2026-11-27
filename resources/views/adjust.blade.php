@@ -1,3 +1,3 @@
 @extends('layout')
-@section('title','调整库存')
-@section('content')<h1>调整库存</h1><form method="post" class="panel stack">@csrf<label>物品编号<input required type="number" name="product_id" min="1"></label><label>变动量（入库为正，出库为负）<input required type="number" name="delta" min="-1000000" max="1000000"></label><label>调整原因<input required maxlength="160" name="reason"></label><button>记录调整</button></form>@endsection
+@section('title', __('messages.nav_adjust_stock'))
+@section('content')<h1>{{ __('messages.nav_adjust_stock') }}</h1><form method="post" class="panel stack">@csrf<label>{{ __('messages.item_no') }}<input required type="number" name="product_id" min="1"></label><label>{{ __('messages.delta_hint') }}<input required type="number" name="delta" min="-1000000" max="1000000"></label><label>{{ __('messages.adjust_reason') }}<input required maxlength="160" name="reason"></label><button>{{ __('messages.record_adjust') }}</button></form>@endsection

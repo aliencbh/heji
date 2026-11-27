@@ -41,6 +41,6 @@ class Grid {
         return view('grid',compact('rows','cols','columns','title','options'));
     }
     public static function cell($value): string {
-        return is_bool($value) ? ($value?'是':'否') : (string)$value;
+        return is_bool($value) ? ($value?__('messages.yes_label'):__('messages.no_label')) : (string)$value;
     }
 }

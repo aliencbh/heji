@@ -17,7 +17,7 @@ class ShopController {
         $d=$r->validate(['product'=>'required|integer|exists:products,id','quantity'=>'required|integer|min:0|max:999']);
         $cart=$r->session()->get('cart',[]);
         if ($d['quantity']) $cart[$d['product']]=(int)$d['quantity']; else unset($cart[$d['product']]);
-        abort_if(count($cart)>80,422,'购物车最多 80 种商品。');
+        abort_if(count($cart)>80,422,__('messages.cart_max_80'));
         $r->session()->put(['cart'=>$cart,'checkout'=>Str::uuid()->toString()]); return redirect('/#basket');
     }
     public function checkout(Request $r,Inventory $inventory) {
@@ -36,9 +36,9 @@ class ShopController {
     }
     public function orders(Request $r) {
         $admin=$r->is('admin/*'); $q=DB::table('orders'); if (!$admin) $q->where('user_id',$r->user()->id);
-        return Grid::show($r,$q,['id'=>'单号','status'=>'状态','total'=>'金额','created_at'=>'下单时间'],'订单',['link'=>'/orders/','actions'=>$admin && $r->user()->can('page','orders.update')?'orders':null,'csvAllowed'=>!$admin || $r->user()->can('page','orders.export')]);
+        return Grid::show($r,$q,['id'=>__('messages.grid_order_id'),'status'=>__('messages.grid_status'),'total'=>__('messages.grid_total'),'created_at'=>__('messages.grid_order_time')],__('messages.grid_orders_title'),['link'=>'/orders/','actions'=>$admin && $r->user()->can('page','orders.update')?'orders':null,'csvAllowed'=>!$admin || $r->user()->can('page','orders.export')]);
     }
     public function change(Request $r,int $id,Inventory $inventory) {
-        $d=$r->validate(['status'=>'required|in:已完成,已取消']); $inventory->orderStatus($id,$d['status'],$r->user()->id); return back();
+        $d=$r->validate(['status'=>'required|in:' . \App\Support\DbValues::COMPLETED . ',' . \App\Support\DbValues::CANCELLED]); $inventory->orderStatus($id,$d['status'],$r->user()->id); return back();
     }
 }

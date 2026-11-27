@@ -2,7 +2,7 @@
   <span class="translate-icon" aria-hidden="true">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
   </span>
-  <a href="{{ route('locale.switch', 'zh-Hans') }}" class="translate-link {{ app()->getLocale() === 'zh-Hans' ? 'is-active' : '' }}">中文</a>
+  <a href="{{ route('locale.switch', 'zh-Hans') }}" class="translate-link {{ app()->getLocale() === 'zh-Hans' ? 'is-active' : '' }}">{{ __(''messages.chinese') }}</a>
   <span class="translate-sep">|</span>
   <a href="{{ route('locale.switch', 'en') }}" class="translate-link {{ app()->getLocale() === 'en' ? 'is-active' : '' }}">English</a>
 </div>

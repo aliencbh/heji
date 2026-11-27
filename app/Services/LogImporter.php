@@ -21,8 +21,8 @@ class LogImporter {
                         for ($i=0;$i<1000 && ($line=fgets($f,32769))!==false;$i++) {
                             if (!str_ends_with($line,"\n") && strlen($line)<32768) break;
                             $message=mb_scrub(trim($line),'UTF-8');
-                            $message=preg_replace('/((?:password|passwd|authorization|token|cookie)[\s"=:]+)[^\s,]+/i','$1[已隐藏]',$message);
-                            DB::table('log_entries')->insert(['category'=>$category==='tests'?'测试':'错误','scope'=>$category==='tests'?substr(basename($path,'.log'),0,64):$category,'message'=>str_replace("\0",'',$message)]);
+                            $message=preg_replace('/((?:password|passwd|authorization|token|cookie)[\s"=:]+)[^\s,]+/i','$1[' . __('messages.hidden_label') . ']',$message);
+                            DB::table('log_entries')->insert(['category'=>$category==='tests'?\App\Support\DbValues::TEST:\App\Support\DbValues::ERROR,'scope'=>$category==='tests'?substr(basename($path,'.log'),0,64):$category,'message'=>str_replace("\0",'',$message)]);
                             $start=ftell($f);
                         }
                         if (!$old || $old->inode!==$stat['ino'] || $old->position!==$start) DB::table('log_offsets')->updateOrInsert(['path'=>$key],['inode'=>$stat['ino'],'position'=>$start]);

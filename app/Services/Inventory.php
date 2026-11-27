@@ -7,7 +7,7 @@ class Inventory {
     public function move(int $id,int $delta,string $reason,int $actor): object {
         $row=DB::table('products')->where('id',$id)->lockForUpdate()->firstOrFail();
         $after=$row->stock+$delta;
-        if ($after<0 || $after>2147483647) throw ValidationException::withMessages(['quantity'=>$row->name.' 的库存不足或超出上限。']);
+        if ($after<0 || $after>2147483647) throw ValidationException::withMessages(['quantity'=>$row->name..__('messages.stock_out_of_range')]);
         DB::table('products')->where('id',$id)->update(['stock'=>$after]);
         DB::table('movements')->insert(['product_id'=>$id,'delta'=>$delta,'reason'=>$reason,'user_id'=>$actor]);
         return $row;
@@ -17,12 +17,12 @@ class Inventory {
             DB::table('users')->where('id',$actor)->lockForUpdate()->firstOrFail();
             $existing=DB::table('orders')->where('user_id',$actor)->where('nonce',$nonce)->value('id');
             if ($existing) return $existing;
-            if (!$cart) throw ValidationException::withMessages(['cart'=>'请先选择商品。']);
+            if (!$cart) throw ValidationException::withMessages(['cart'=>__('messages.select_product')]);
             ksort($cart,SORT_NUMERIC);
             $id=DB::table('orders')->insertGetId(['user_id'=>$actor,'nonce'=>$nonce,'total'=>0]);
             foreach ($cart as $pid=>$qty) {
-                $p=$this->move($pid,-$qty,'订单 #'.$id,$actor);
-                if (!$p->active) throw ValidationException::withMessages(['cart'=>$p->name.' 已下架。']);
+        $p=$this->move($pid,-$qty, __('messages.order_no', ['id' => $id]), $actor);
+                if (!$p->active) throw ValidationException::withMessages(['cart'=>$p->name..__('messages.off_shelf')]);
                 DB::table('order_lines')->insert(['order_id'=>$id,'product_id'=>$pid,'price'=>$p->price,'name'=>$p->name,'quantity'=>$qty]);
             }
             DB::update('UPDATE orders SET total=(SELECT sum(price*quantity) FROM order_lines WHERE order_id=?) WHERE id=?',[$id,$id]);
@@ -33,9 +33,9 @@ class Inventory {
         DB::transaction(function() use($id,$status,$actor) {
             $row=DB::table('orders')->where('id',$id)->lockForUpdate()->firstOrFail();
             if ($row->status===$status) return;
-            abort_unless($row->status==='待处理',409,'订单已结案。');
-            if ($status==='已取消') foreach (DB::table('order_lines')->where('order_id',$id)->orderBy('product_id')->get() as $line) {
-                $this->move($line->product_id,$line->quantity,'撤销订单 #'.$id,$actor);
+            abort_unless($row->status===\App\Support\DbValues::PENDING,409,__('messages.order_closed'));
+            if ($status===\App\Support\DbValues::CANCELLED) foreach (DB::table('order_lines')->where('order_id',$id)->orderBy('product_id')->get() as $line) {
+        $p=$this->move($pid,-$qty, __('messages.order_no', ['id' => $id]), $actor);
             }
             DB::table('orders')->where('id',$id)->update(['status'=>$status]);
         },3);
@@ -44,8 +44,8 @@ class Inventory {
         DB::transaction(function() use($id,$status,$actor) {
             $p=DB::table('purchases')->where('id',$id)->lockForUpdate()->firstOrFail();
             if ($p->status===$status) return;
-            abort_unless($p->status==='待收货',409,'采购单已结案。');
-            if ($status==='已收货') $this->move($p->product_id,$p->quantity,'采购收货 #'.$id,$actor);
+            abort_unless($p->status===\App\Support\DbValues::PENDING_RECEIPT,409,__('messages.purchase_closed'));
+        if ($status===\App\Support\DbValues::RECEIVED) $this->move($p->product_id, $p->quantity, __('messages.purchase_receipt_no', ['id' => $id]), $actor);
             DB::table('purchases')->where('id',$id)->update(['status'=>$status]);
         },3);
     }

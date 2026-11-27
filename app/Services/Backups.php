@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\{Cache,DB};
 use Symfony\Component\Process\Process;
 class Backups {
     public function directory(): string {
-        $dir=storage_path('app/private/backups'); if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) throw new \RuntimeException('无法建立备份目录。');
+        $dir=storage_path('app/private/backups'); if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) throw new \RuntimeException(__('messages.backup_dir_failed'));
         return $dir;
     }
     public function create(bool $due=false): ?string {
@@ -16,7 +16,7 @@ class Backups {
                 if ($last && now()->parse($last)->addMinutes($minutes)->isFuture()) return null;
             }
             $name=now()->format('ymdHis'); $path=$this->directory().'/'.$name.'.dump';
-            if (file_exists($path)) abort(409,'同一秒内已经创建了备份。');
+            if (file_exists($path)) abort(409,__('messages.backup_exists'));
             $tmp=$path.'.'.bin2hex(random_bytes(5)).'.part';
             $c=config('database.connections.pgsql');
             $pg=['PGHOST'=>$c['host'],'PGPORT'=>(string)$c['port'],'PGUSER'=>$c['username'],'PGPASSWORD'=>$c['password'],'PGDATABASE'=>$c['database']];
@@ -27,7 +27,7 @@ class Backups {
                 DB::transaction(function() use($tmp,$path,$name) {
                     DB::table('backups')->insert(['name'=>$name,'size'=>filesize($tmp)]);
                     Events::record('backup.created',$name);
-                    if (!rename($tmp,$path)) throw new \RuntimeException('备份写入失败。');
+                    if (!rename($tmp,$path)) throw new \RuntimeException(__('messages.backup_write_failed'));
                 });
             } catch (\Throwable $e) {
                 if (is_file($path) && !DB::table('backups')->where('name',$name)->exists()) unlink($path);
@@ -42,7 +42,7 @@ class Backups {
             DB::transaction(function() use($id,&$trash,&$path) {
                 $b=DB::table('backups')->where('id',$id)->lockForUpdate()->firstOrFail();
                 $path=$this->directory().'/'.$b->name.'.dump'; $trash=$path.'.delete';
-                if (is_file($path) && !rename($path,$trash)) throw new \RuntimeException('备份正在使用。');
+                if (is_file($path) && !rename($path,$trash)) throw new \RuntimeException(__('messages.backup_in_use'));
                 DB::table('backups')->delete($id); Events::record('backup.deleted',$b->name);
             });
         } catch(\Throwable $e) { if ($trash && is_file($trash)) rename($trash,$path); throw $e; }
