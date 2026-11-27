@@ -76,7 +76,7 @@ FROM nginx:stable-alpine AS web
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY --from=app /srv/heji/public /srv/heji/public
 FROM mcr.microsoft.com/playwright/python:latest AS browser
-RUN pip install --no-cache-dir playwright
+RUN pip install --no-cache-dir playwright==1.65.2 ^&^& playwright install --with-deps chromium
 COPY tests/browser.py tests/ui_controls.py tests/controls.test.cjs /checks/tests/
 COPY resources/assets /checks/resources/assets
 CMD ["sh", "-ec", "node_path=$(python -c 'import pathlib,playwright;print(pathlib.Path(playwright.__file__).parent/\"driver/node\")'); \"$node_path\" --test /checks/tests/controls.test.cjs && python /checks/tests/ui_controls.py && python /checks/tests/browser.py"]
