@@ -1,4 +1,4 @@
-﻿@extends('layout')
+@extends('layout')
 @section('title',$register?'注册账号':'账号登录')
 @section('content')
 <section class="auth panel"><h1>{{ $register?'注册账号':'欢迎回来' }}</h1><form method="post" class="stack">@csrf

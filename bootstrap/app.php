@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use App\Http\Middleware\SiteContext;
 use Illuminate\Foundation\Application;
