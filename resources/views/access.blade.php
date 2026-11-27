@@ -1,4 +1,4 @@
-@extends('layout')
+<style>.password-wrap{position:relative;display:block;width:100%}.password-wrap input{width:100%;padding-right:42px;box-sizing:border-box}.password-wrap .eye-btn,.password-wrap button[type=button]{position:absolute !important;right:6px !important;top:50% !important;transform:translateY(-50%) !important;margin:0 !important;height:28px !important;width:32px !important;display:flex !important;align-items:center;justify-content:center;border:0;border-radius:6px;cursor:pointer}</style>[char]13 + [char]10@extends('layout')
 @section('title',$register?__('messages.register_account'):__('messages.account_login'))
 @section('content')
 <section class="auth panel"><h1>{{ $register?__('messages.register_account'):__('messages.welcome_back') }}</h1><form method="post" class="stack">@csrf
