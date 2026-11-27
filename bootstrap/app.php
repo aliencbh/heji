@@ -9,7 +9,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(web: __DIR__.'/../routes/web.php', commands: __DIR__.'/../routes/console.php')
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias(['page' => App\Http\Middleware\PageAccess::class]);
-        $middleware->web(append: [SiteContext::class]);
+		$middleware->web(append: [
+		    SiteContext::class，
+            \App\Http\Middleware\SetLocale::class
+        ]);
         $middleware->redirectGuestsTo(fn () => '/login');
         $middleware->redirectUsersTo(fn () => '/admin');
     })

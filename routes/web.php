@@ -2,6 +2,14 @@
 use App\Http\Controllers\{AccessController,CalendarController,CatalogController,DeveloperController,RoleController,ShopController,StockController};
 use App\Http\Middleware\CatalogAccess;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/locale/{locale}', function (string $locale) {
+    if (in_array($locale, ['zh-Hans', 'en'], true)) {
+        session(['locale' => $locale]);
+    }
+    return redirect()->back(fallback: '/');
+})->name('locale.switch');
+
 foreach (array_keys(config('heji.sites')) as $site) {
  Route::domain($site.'.laravel.demo')->group(function() use($site) {
 	Route::get('/health',fn()=>response('ok'));

@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="csrf-token" content="{{ csrf_token() }}"><title>@yield('title','工作台') · 合集</title><link rel="stylesheet" href="/assets/app.css">@stack('styles')<script defer src="/assets/app.js"></script></head>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="csrf-token" content="{{ csrf_token() }}"><title>@yield('title','工作台') · 合集</title><link rel="stylesheet" href="/assets/app.css">@stack('styles')<script defer src="/assets/app.js"></script></head>
 @php($site=request()->attributes->get('site'))
-<body class="site-{{ $site }}"><header><div class="mast"><a class="brand" href="/"><span class="seal">禾</span>合集<span class="line"></span><span>{{ config('heji.sites.'.$site) }}</span></a><nav><a href="/admin">工作台</a>@auth<form method="post" action="/logout">@csrf<button class="quiet">退出</button></form>@else<a href="/login">登录</a>@endauth</nav></div></header>
+<body class="site-{{ $site }}"><header><div class="mast"><a class="brand" href="/"><span class="seal">合</span>合集<span class="line"></span><span>{{ config('heji.sites.'.$site) }}</span></a><nav>@include('partials.translate-button')<a href="/admin">{{ __('messages.dashboard') }}</a>@auth<form method="post" action="/logout">@csrf<button class="quiet">{{ __('messages.logout') }}</button></form>@else<a href="/login">{{ __('messages.login') }}</a>@endauth</nav></div></header>
 <div class="frame">
 @auth<aside><a href="/admin" class="section-home">后台总览</a>
 @foreach(config('nav.'.$site) as $group=>$links)
