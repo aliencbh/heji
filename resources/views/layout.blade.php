@@ -15,4 +15,4 @@
 <main><div class="crumb"><a href="/">合集{{ config('heji.sites.'.$site) }}</a><span>／</span>@if(request()->is('admin/*'))<a href="/admin">后台</a><span>／</span>@endif @yield('title','工作台')</div>
 @if(session('ok'))<div class="notice" role="status">{{ session('ok') }}</div>@endif
 @if($errors->any())<div class="errors" role="alert"><strong>请检查以下内容</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-@yield('content')</main></div></body></html>
+@yield('content')</main></div>@include('partials.password-eye')</body></html>
