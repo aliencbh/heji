@@ -1,11 +1,10 @@
-ï»¿@echo off
+@echo off
 setlocal EnableExtensions DisableDelayedExpansion
 if /i not "%~1"=="maximized" (
     start "" /max "%~f0" maximized
     exit /b
 )
 
-chcp 936 >nul
 pushd "%~dp0" || exit /b 1
 
 if not defined PGADMIN_DEFAULT_EMAIL set "PGADMIN_DEFAULT_EMAIL=pgadmin@laravel.demo"
@@ -13,12 +12,12 @@ if not defined PGADMIN_DEFAULT_PASSWORD set "PGADMIN_DEFAULT_PASSWORD=password"
 
 :input_env
 set "mode=dev"
-set /p "mode=è¯·è¾“å…¥è¿è¡Œç¯å¢ƒ (prod/devï¼Œç›´æ¥å›è½¦ä½¿ç”¨ dev): "
+set /p "mode=ÇëÊäÈëÔËĞĞ»·¾³ (prod/dev£¬Ö±½Ó»Ø³µÊ¹ÓÃ dev): "
 setlocal EnableDelayedExpansion
 if /i "!mode!"=="prod" goto selected_prod
 if /i "!mode!"=="dev" goto selected_dev
 endlocal
-echo è¯·è¾“å…¥ prod æˆ– devã€‚
+echo ÇëÊäÈë prod »ò dev¡£
 goto input_env
 
 :selected_prod
@@ -31,27 +30,27 @@ endlocal
 set "mode=dev"
 
 :start_flow
-echo æ­£åœ¨å‡†å¤‡ Docker è¿ç»´å®¹å™¨...
+echo ÕıÔÚ×¼±¸ Docker ÔËÎ¬ÈİÆ÷...
 docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --build ops init
 if errorlevel 1 goto failed
 
-echo æ­£åœ¨ä¿®å¤æ—¥å¿—ç›®å½•æƒé™...
+echo ÕıÔÚĞŞ¸´ÈÕÖ¾Ä¿Â¼È¨ÏŞ...
 docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --entrypoint sh --no-deps ops -c "mkdir -p /srv/heji/var/logs/php /srv/heji/var/logs/nginx /srv/heji/var/logs/postgres /srv/heji/var/logs/redis /srv/heji/var/logs/runtime /srv/heji/var/logs/pgadmin /srv/heji/var/logs/npm /srv/heji/var/logs/tests; chown -R 999:999 /srv/heji/var/logs/redis /srv/heji/var/logs/postgres; chmod -R 777 /srv/heji/var/logs"
 if errorlevel 1 goto failed
 
 if /i "%mode%"=="prod" goto release
-rem å®é™…éƒ¨ç½²ç¯å¢ƒæ–‡ä»¶ç”± ops è¯»å–ï¼Œé»˜è®¤ä¸º /srv/heji/.envã€‚
-rem éªŒè¯æ—¶ä½¿ç”¨å‘å¸ƒé…ç½®å’Œå¼€å‘å åŠ æ–‡ä»¶ï¼Œé¿å…åœ¨åˆ‡æ¢ç‰ˆæœ¬åæ‰å‘ç°é…ç½®é”™è¯¯ã€‚
+rem Êµ¼Ê²¿Êğ»·¾³ÎÄ¼şÓÉ ops ¶ÁÈ¡£¬Ä¬ÈÏÎª /srv/heji/.env¡£
+rem ÑéÖ¤Ê±Ê¹ÓÃ·¢²¼ÅäÖÃºÍ¿ª·¢µş¼ÓÎÄ¼ş£¬±ÜÃâÔÚÇĞ»»°æ±¾ºó²Å·¢ÏÖÅäÖÃ´íÎó¡£
 call :dev_compose config --quiet
 if errorlevel 1 goto failed
 
 :release
-echo æ­£åœ¨æŒ‰é¡¹ç›®å‘å¸ƒæµç¨‹æ„å»ºã€æµ‹è¯•å¹¶å¯åŠ¨ä¸‰ä¸ªç½‘ç«™...
+echo ÕıÔÚ°´ÏîÄ¿·¢²¼Á÷³Ì¹¹½¨¡¢²âÊÔ²¢Æô¶¯Èı¸öÍøÕ¾...
 docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --no-deps ops release
 if errorlevel 1 goto failed
 
 if /i "%mode%"=="prod" goto success
-echo æ­£åœ¨å¯åŠ¨å¼€å‘å·¥å…·...
+echo ÕıÔÚÆô¶¯¿ª·¢¹¤¾ß...
 call :dev_compose up -d --wait --no-deps nginx-proxy-manager pgadmin
 if errorlevel 1 goto failed
 
@@ -63,12 +62,12 @@ exit /b 0
 
 :failed
 set "rc=%errorlevel%"
-echo æ“ä½œå¤±è´¥ï¼Œè¯·æŸ¥çœ‹ä¸Šæ–¹é”™è¯¯ä¿¡æ¯ã€‚é¦–æ¬¡éƒ¨ç½²è¯·æŒ‰ README åˆå§‹åŒ–ç¯å¢ƒå¹¶é…ç½®è¯ä¹¦ã€‚
+echo ²Ù×÷Ê§°Ü£¬Çë²é¿´ÉÏ·½´íÎóĞÅÏ¢¡£Ê×´Î²¿ÊğÇë°´ README ³õÊ¼»¯»·¾³²¢ÅäÖÃÖ¤Êé¡£
 popd
 pause
 exit /b %rc%
 
 :dev_compose
-rem /project æ˜¯ ops å®¹å™¨ä¸­çš„æºç æ ¹ç›®å½•ã€‚PGADMIN å˜é‡å¯æ¥è‡ª Windows ç¯å¢ƒæˆ–éƒ¨ç½²ç¯å¢ƒæ–‡ä»¶ã€‚
+rem /project ÊÇ ops ÈİÆ÷ÖĞµÄÔ´Âë¸ùÄ¿Â¼¡£PGADMIN ±äÁ¿¿ÉÀ´×Ô Windows »·¾³»ò²¿Êğ»·¾³ÎÄ¼ş¡£
 docker compose --env-file ".env.example" -f "compose.setup.yaml" run --rm -T --no-deps -e PGADMIN_DEFAULT_EMAIL -e PGADMIN_DEFAULT_PASSWORD ops compose -f /project/compose-dev.yml %*
 exit /b %errorlevel%
