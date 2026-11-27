@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # All changes to the live application follow the isolated test and HTTPS gates.
 set -Eeuo pipefail
 cd "${HEJI_SOURCE_DIR:?}"
@@ -153,7 +153,7 @@ export HEJI_VAR=$live_var HEJI_ENV_FILE=$live_env
 "${live[@]}" config --quiet
 prev=$(cat "$live_var/current" 2>/dev/null || true)
 if [[ -n "$prev" ]]; then
-    RELEASE_TAG=$prev "${live[@]}" run --rm --no-deps app php artisan heji:backup
+    if ! docker image inspect "heji-app:$prev" >/dev/null 2>&1; then echo "old image heji-app:$prev missing, skip backup" >&2; else RELEASE_TAG=$prev "${live[@]}" run --rm --no-deps app php artisan heji:backup || echo "backup failed, continue release" >&2; fi
 fi
 bash docker/logdirs heji "$reportdir/runtime/compose.yaml"
 "${live[@]}" up -d --wait logs
